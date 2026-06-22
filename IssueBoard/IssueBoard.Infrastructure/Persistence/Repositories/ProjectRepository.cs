@@ -34,10 +34,18 @@ public sealed class ProjectRepository : IProjectRepository
 
     public async Task<IReadOnlyList<Project>> ListByWorkspaceIdAsync(
         Guid workspaceId,
+        bool includeArchived = false,
         CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Projects
-            .Where(project => project.WorkspaceId == workspaceId)
+        IQueryable<Project> query = _dbContext.Projects
+            .Where(project => project.WorkspaceId == workspaceId);
+
+        if (!includeArchived)
+        {
+            query = query.Where(project => !project.IsArchived);
+        }
+
+        return await query
             .OrderBy(project => project.Name)
             .ToListAsync(cancellationToken);
     }

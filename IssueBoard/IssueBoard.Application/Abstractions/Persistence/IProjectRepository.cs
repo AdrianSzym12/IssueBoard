@@ -13,6 +13,7 @@ public interface IProjectRepository
 
     Task<IReadOnlyList<Project>> ListByWorkspaceIdAsync(
         Guid workspaceId,
+        bool includeArchived = false,
         CancellationToken cancellationToken = default);
 
     void Add(Project project);
