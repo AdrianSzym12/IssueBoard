@@ -12,6 +12,7 @@ using IssueBoard.Application.Issues.Update;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using IssueBoard.Application.Issues.Activities.List;
 
 namespace IssueBoard.Api.Controllers;
 
@@ -77,7 +78,30 @@ public sealed class IssuesController : ApiControllerBase
 
         return HandleResult(result);
     }
+    [HttpGet("issues/{issueId:guid}/activities")]
+    [ProducesResponseType(typeof(IReadOnlyList<IssueActivityDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ListActivities(
+    Guid issueId,
+    CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out Guid currentUserId))
+        {
+            return MissingUserIdClaim();
+        }
 
+        ListIssueActivitiesQuery query = new(
+            issueId,
+            currentUserId);
+
+        Result<IReadOnlyList<IssueActivityDto>> result = await _sender.Send(
+            query,
+            cancellationToken);
+
+        return HandleResult(result);
+    }
     [HttpPut("issues/{issueId:guid}")]
     [ProducesResponseType(typeof(IssueDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
