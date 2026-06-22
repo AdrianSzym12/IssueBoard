@@ -40,6 +40,18 @@ public sealed class IssueRepository : IIssueRepository
                 cancellationToken);
     }
 
+    public async Task<int> GetNextIssueNumberAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default)
+    {
+        int? currentMaxNumber = await _dbContext.Issues
+            .Where(issue => issue.ProjectId == projectId)
+            .Select(issue => (int?)issue.Number)
+            .MaxAsync(cancellationToken);
+
+        return (currentMaxNumber ?? 0) + 1;
+    }
+
     public async Task<IReadOnlyList<Issue>> ListByProjectIdAsync(
         Guid projectId,
         CancellationToken cancellationToken = default)

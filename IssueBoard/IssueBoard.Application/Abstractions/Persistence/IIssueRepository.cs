@@ -13,6 +13,10 @@ public interface IIssueRepository
         int number,
         CancellationToken cancellationToken = default);
 
+    Task<int> GetNextIssueNumberAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Issue>> ListByProjectIdAsync(
         Guid projectId,
         CancellationToken cancellationToken = default);
