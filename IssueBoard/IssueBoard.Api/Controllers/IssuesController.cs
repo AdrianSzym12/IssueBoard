@@ -4,6 +4,8 @@ using IssueBoard.Application.Dtos;
 using IssueBoard.Application.Issues.Assign;
 using IssueBoard.Application.Issues.ChangePriority;
 using IssueBoard.Application.Issues.ChangeStatus;
+using IssueBoard.Application.Issues.Comments.Add;
+using IssueBoard.Application.Issues.Comments.List;
 using IssueBoard.Application.Issues.Create;
 using IssueBoard.Application.Issues.Get;
 using IssueBoard.Application.Issues.Update;
@@ -182,6 +184,60 @@ public sealed class IssuesController : ApiControllerBase
             currentUserId);
 
         Result<IssueDto> result = await _sender.Send(command, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpGet("issues/{issueId:guid}/comments")]
+    [ProducesResponseType(typeof(IReadOnlyList<IssueCommentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ListComments(
+        Guid issueId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out Guid currentUserId))
+        {
+            return MissingUserIdClaim();
+        }
+
+        ListIssueCommentsQuery query = new(
+            issueId,
+            currentUserId);
+
+        Result<IReadOnlyList<IssueCommentDto>> result = await _sender.Send(
+            query,
+            cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpPost("issues/{issueId:guid}/comments")]
+    [ProducesResponseType(typeof(IssueCommentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddComment(
+        Guid issueId,
+        AddIssueCommentRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out Guid currentUserId))
+        {
+            return MissingUserIdClaim();
+        }
+
+        AddIssueCommentCommand command = new(
+            issueId,
+            request.Content,
+            currentUserId);
+
+        Result<IssueCommentDto> result = await _sender.Send(
+            command,
+            cancellationToken);
 
         return HandleResult(result);
     }
