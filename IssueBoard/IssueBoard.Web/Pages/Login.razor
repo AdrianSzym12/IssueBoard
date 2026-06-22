@@ -1,0 +1,64 @@
+@page "/login"
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Login - IssueBoard</PageTitle>
+
+<section class="auth-card">
+    <h1>Login</h1>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <p class="error-message">@_error</p>
+    }
+
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <label>
+            Email
+            <InputText class="input" @bind-Value="_model.Email" />
+        </label>
+
+        <label>
+            Password
+            <InputText class="input" type="password" @bind-Value="_model.Password" />
+        </label>
+
+        <button class="primary-button" type="submit" disabled="@_isSubmitting">
+            @(_isSubmitting ? "Logging in..." : "Login")
+        </button>
+    </EditForm>
+
+    <p>
+        No account yet?
+        <a href="register">Create one</a>
+    </p>
+</section>
+
+@code {
+    private readonly LoginRequest _model = new();
+
+    private bool _isSubmitting;
+
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        _isSubmitting = true;
+        _error = null;
+
+        ApiResult<AuthResponse> result = await AuthService.LoginAsync(_model);
+
+        _isSubmitting = false;
+
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        _error = result.Error ?? "Login failed.";
+    }
+}

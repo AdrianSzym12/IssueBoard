@@ -1,0 +1,69 @@
+@page "/register"
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Register - IssueBoard</PageTitle>
+
+<section class="auth-card">
+    <h1>Create account</h1>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <p class="error-message">@_error</p>
+    }
+
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <label>
+            Email
+            <InputText class="input" @bind-Value="_model.Email" />
+        </label>
+
+        <label>
+            Display name
+            <InputText class="input" @bind-Value="_model.DisplayName" />
+        </label>
+
+        <label>
+            Password
+            <InputText class="input" type="password" @bind-Value="_model.Password" />
+        </label>
+
+        <button class="primary-button" type="submit" disabled="@_isSubmitting">
+            @(_isSubmitting ? "Creating account..." : "Create account")
+        </button>
+    </EditForm>
+
+    <p>
+        Already have an account?
+        <a href="login">Login</a>
+    </p>
+</section>
+
+@code {
+    private readonly RegisterRequest _model = new();
+
+    private bool _isSubmitting;
+
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        _isSubmitting = true;
+        _error = null;
+
+        ApiResult<AuthResponse> result = await AuthService.RegisterAsync(_model);
+
+        _isSubmitting = false;
+
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        _error = result.Error ?? "Registration failed.";
+    }
+}

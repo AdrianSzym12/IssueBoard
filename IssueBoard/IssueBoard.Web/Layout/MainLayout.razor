@@ -1,16 +1,39 @@
-﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+@inherits LayoutComponentBase
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+<div class="app-shell">
+    <header class="topbar">
+        <NavLink class="brand" href="" Match="NavLinkMatch.All">
+            IssueBoard
+        </NavLink>
 
-        <article class="content px-4">
-            @Body
-        </article>
+        <nav class="nav-links">
+            <AuthorizeView>
+                <Authorized>
+                    <span class="nav-user">Signed in</span>
+                    <button class="link-button" @onclick="LogoutAsync">
+                        Logout
+                    </button>
+                </Authorized>
+
+                <NotAuthorized>
+                    <NavLink href="login">Login</NavLink>
+                    <NavLink href="register">Register</NavLink>
+                </NotAuthorized>
+            </AuthorizeView>
+        </nav>
+    </header>
+
+    <main class="content">
+        @Body
     </main>
 </div>
+
+@code {
+    private async Task LogoutAsync()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

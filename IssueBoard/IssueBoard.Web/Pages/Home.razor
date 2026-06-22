@@ -1,7 +1,27 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>IssueBoard</PageTitle>
 
-<h1>Hello, world!</h1>
+<section class="hero">
+    <p class="eyebrow">Portfolio project</p>
+    <h1>IssueBoard</h1>
+    <p>
+        A lightweight issue tracking app built with ASP.NET Core Web API,
+        Blazor WebAssembly, EF Core and PostgreSQL.
+    </p>
 
-Welcome to your new app.
+    <AuthorizeView>
+        <Authorized>
+            <p class="success-message">
+                You are signed in. The next commit will add the issue board UI.
+            </p>
+        </Authorized>
+
+        <NotAuthorized>
+            <div class="button-row">
+                <a class="primary-button" href="login">Login</a>
+                <a class="secondary-button" href="register">Create account</a>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</section>
