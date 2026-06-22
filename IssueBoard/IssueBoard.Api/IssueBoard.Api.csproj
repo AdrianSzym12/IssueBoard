@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IssueBoard.Application\IssueBoard.Application.csproj" />
+    <ProjectReference Include="..\IssueBoard.Domain\IssueBoard.Domain.csproj" />
+    <ProjectReference Include="..\IssueBoard.Infrastructure\IssueBoard.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

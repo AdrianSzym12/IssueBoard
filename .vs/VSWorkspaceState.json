@@ -1,0 +1,13 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\IssueBoard",
+    "\\IssueBoard\\IssueBoard.Api",
+    "\\IssueBoard\\IssueBoard.Application",
+    "\\IssueBoard\\IssueBoard.Domain",
+    "\\IssueBoard\\IssueBoard.Infrastructure",
+    "\\IssueBoard\\IssueBoard.IntegrationTests"
+  ],
+  "SelectedNode": "\\IssueBoard\\IssueBoard.sln",
+  "PreviewInSolutionExplorer": false
+}
