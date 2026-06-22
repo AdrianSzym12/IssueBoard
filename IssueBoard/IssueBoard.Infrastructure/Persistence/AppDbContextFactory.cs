@@ -9,7 +9,7 @@ public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
     {
         string connectionString =
             Environment.GetEnvironmentVariable("ISSUEBOARD_CONNECTION_STRING")
-            ?? "Host=localhost;Port=5432;Database=issueboard;Username=postgres;Password=postgres";
+            ?? "Host=localhost;Port=5434;Database=issueboard;Username=postgres;Password=root";
 
         DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql(connectionString)

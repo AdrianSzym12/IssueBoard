@@ -1,6 +1,8 @@
 using IssueBoard.Application.Abstractions.Persistence;
+using IssueBoard.Application.Abstractions.Security;
 using IssueBoard.Infrastructure.Persistence;
 using IssueBoard.Infrastructure.Persistence.Repositories;
+using IssueBoard.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +30,9 @@ public static class DependencyInjection
         services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<IIssueRepository, IssueRepository>();
+
+        services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
         return services;
     }
