@@ -13,6 +13,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using IssueBoard.Application.Issues.Activities.List;
+using IssueBoard.Application.Common.Pagination;
+using IssueBoard.Application.Issues.List;
 
 namespace IssueBoard.Api.Controllers;
 
@@ -54,6 +56,41 @@ public sealed class IssuesController : ApiControllerBase
             currentUserId);
 
         Result<IssueDto> result = await _sender.Send(command, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    [HttpGet("projects/{projectId:guid}/issues")]
+    [ProducesResponseType(typeof(PagedList<IssueDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ListProjectIssues(
+    Guid projectId,
+    [FromQuery] SearchIssuesRequest request,
+    CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out Guid currentUserId))
+        {
+            return MissingUserIdClaim();
+        }
+
+        ListProjectIssuesQuery query = new(
+            projectId,
+            request.Status,
+            request.Priority,
+            request.AssigneeUserId,
+            request.SearchTerm,
+            request.SortBy,
+            request.SortDescending,
+            request.PageNumber,
+            request.PageSize,
+            currentUserId);
+
+        Result<PagedList<IssueDto>> result = await _sender.Send(
+            query,
+            cancellationToken);
 
         return HandleResult(result);
     }

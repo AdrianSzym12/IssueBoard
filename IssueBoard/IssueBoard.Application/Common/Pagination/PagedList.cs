@@ -1,9 +1,9 @@
 namespace IssueBoard.Application.Common.Pagination;
 
-public sealed class PagedList<TItem>
+public sealed class PagedList<T>
 {
     public PagedList(
-        IReadOnlyList<TItem> items,
+        IReadOnlyList<T> items,
         int pageNumber,
         int pageSize,
         int totalCount)
@@ -12,12 +12,9 @@ public sealed class PagedList<TItem>
         PageNumber = pageNumber;
         PageSize = pageSize;
         TotalCount = totalCount;
-        TotalPages = totalCount == 0
-            ? 0
-            : (int)Math.Ceiling(totalCount / (double)pageSize);
     }
 
-    public IReadOnlyList<TItem> Items { get; }
+    public IReadOnlyList<T> Items { get; }
 
     public int PageNumber { get; }
 
@@ -25,18 +22,11 @@ public sealed class PagedList<TItem>
 
     public int TotalCount { get; }
 
-    public int TotalPages { get; }
+    public int TotalPages => PageSize == 0
+        ? 0
+        : (int)Math.Ceiling(TotalCount / (double)PageSize);
 
     public bool HasPreviousPage => PageNumber > 1;
 
     public bool HasNextPage => PageNumber < TotalPages;
-
-    public static PagedList<TItem> Empty(int pageNumber, int pageSize)
-    {
-        return new PagedList<TItem>(
-            Array.Empty<TItem>(),
-            pageNumber,
-            pageSize,
-            totalCount: 0);
-    }
 }

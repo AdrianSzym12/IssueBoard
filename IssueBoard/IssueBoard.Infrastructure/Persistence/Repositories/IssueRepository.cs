@@ -69,7 +69,6 @@ public sealed class IssueRepository : IIssueRepository
         CancellationToken cancellationToken = default)
     {
         IQueryable<Issue> query = _dbContext.Issues
-            .Include(issue => issue.Labels)
             .Where(issue => issue.ProjectId == options.ProjectId);
 
         if (options.Status.HasValue)
@@ -89,17 +88,24 @@ public sealed class IssueRepository : IIssueRepository
 
         if (!string.IsNullOrWhiteSpace(options.SearchTerm))
         {
+            string searchTerm = options.SearchTerm.Trim();
+
             query = query.Where(issue =>
-                EF.Functions.ILike(issue.Title, $"%{options.SearchTerm}%"));
+                EF.Functions.ILike(issue.Title, $"%{searchTerm}%"));
         }
 
         int totalCount = await query.CountAsync(cancellationToken);
 
-        List<Issue> issues = await query
-            .OrderByDescending(issue => issue.UpdatedAtUtc ?? issue.CreatedAtUtc)
+        IOrderedQueryable<Issue> orderedQuery = ApplySorting(
+            query,
+            options.SortBy,
+            options.SortDescending);
+
+        List<Issue> issues = await orderedQuery
             .ThenByDescending(issue => issue.Number)
             .Skip((options.PageNumber - 1) * options.PageSize)
             .Take(options.PageSize)
+            .Include(issue => issue.Labels)
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
@@ -113,5 +119,48 @@ public sealed class IssueRepository : IIssueRepository
     public void Add(Issue issue)
     {
         _dbContext.Issues.Add(issue);
+    }
+
+    private static IOrderedQueryable<Issue> ApplySorting(
+        IQueryable<Issue> query,
+        string sortBy,
+        bool sortDescending)
+    {
+        string normalizedSortBy = sortBy.Trim().ToLowerInvariant();
+
+        return normalizedSortBy switch
+        {
+            "number" => sortDescending
+                ? query.OrderByDescending(issue => issue.Number)
+                : query.OrderBy(issue => issue.Number),
+
+            "title" => sortDescending
+                ? query.OrderByDescending(issue => issue.Title)
+                : query.OrderBy(issue => issue.Title),
+
+            "status" => sortDescending
+                ? query.OrderByDescending(issue => issue.Status)
+                : query.OrderBy(issue => issue.Status),
+
+            "priority" => sortDescending
+                ? query.OrderByDescending(issue => issue.Priority)
+                : query.OrderBy(issue => issue.Priority),
+
+            "duedateutc" or "duedate" => sortDescending
+                ? query.OrderByDescending(issue => issue.DueDateUtc)
+                : query.OrderBy(issue => issue.DueDateUtc),
+
+            "createdatutc" or "created" => sortDescending
+                ? query.OrderByDescending(issue => issue.CreatedAtUtc)
+                : query.OrderBy(issue => issue.CreatedAtUtc),
+
+            "updatedatutc" or "updated" => sortDescending
+                ? query.OrderByDescending(issue => issue.UpdatedAtUtc ?? issue.CreatedAtUtc)
+                : query.OrderBy(issue => issue.UpdatedAtUtc ?? issue.CreatedAtUtc),
+
+            _ => sortDescending
+                ? query.OrderByDescending(issue => issue.UpdatedAtUtc ?? issue.CreatedAtUtc)
+                : query.OrderBy(issue => issue.UpdatedAtUtc ?? issue.CreatedAtUtc)
+        };
     }
 }
