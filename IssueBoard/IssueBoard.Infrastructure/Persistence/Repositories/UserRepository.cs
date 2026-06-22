@@ -19,6 +19,20 @@ public sealed class UserRepository : IUserRepository
             .SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<User>> ListByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0)
+        {
+            return Array.Empty<User>();
+        }
+
+        return await _dbContext.Users
+            .Where(user => ids.Contains(user.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         string normalizedEmail = email.Trim().ToLowerInvariant();

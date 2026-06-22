@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using IssueBoard.Api.Common.Errors;
 using IssueBoard.Application.Common.Errors;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,34 @@ public abstract class ApiControllerBase : ControllerBase
         }
 
         return HandleFailure(result);
+    }
+
+    protected IActionResult HandleResult(Result result)
+    {
+        if (result.IsSuccess)
+        {
+            return NoContent();
+        }
+
+        return HandleFailure(result);
+    }
+
+    protected bool TryGetCurrentUserId(out Guid userId)
+    {
+        string? userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        return Guid.TryParse(userIdValue, out userId);
+    }
+
+    protected IActionResult MissingUserIdClaim()
+    {
+        ApiErrorResponse response = new(
+            Title: "Unauthorized",
+            Status: StatusCodes.Status401Unauthorized,
+            Detail: "Authenticated user id claim is missing.",
+            TraceId: HttpContext.TraceIdentifier);
+
+        return Unauthorized(response);
     }
 
     protected IActionResult HandleFailure(Result result)
