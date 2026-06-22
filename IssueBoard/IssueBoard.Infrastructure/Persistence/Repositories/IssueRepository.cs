@@ -53,11 +53,12 @@ public sealed class IssueRepository : IIssueRepository
     }
 
     public async Task<IReadOnlyList<Issue>> ListByProjectIdAsync(
-        Guid projectId,
-        CancellationToken cancellationToken = default)
+    Guid projectId,
+    CancellationToken cancellationToken = default)
     {
         return await _dbContext.Issues
             .Include(issue => issue.Labels)
+            .Include(issue => issue.Activities)
             .Where(issue => issue.ProjectId == projectId)
             .OrderBy(issue => issue.Number)
             .AsSplitQuery()
