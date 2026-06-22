@@ -1,0 +1,459 @@
+@page "/board"
+@attribute [Authorize]
+@inject IWorkspaceService WorkspaceService
+@inject IProjectService ProjectService
+@inject IIssueService IssueService
+
+<PageTitle>Board - IssueBoard</PageTitle>
+
+<section class="board-page">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Workspace board</p>
+            <h1>Issue board</h1>
+        </div>
+
+        @if (_selectedProject is not null)
+        {
+            <div class="project-pill">
+                @_selectedProject.Key
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <p class="error-message">@_error</p>
+    }
+
+    @if (_isLoading)
+    {
+        <p>Loading board...</p>
+    }
+    else
+    {
+        <div class="board-layout">
+            <aside class="sidebar-card">
+                <h2>Workspaces</h2>
+
+                @if (_workspaces.Count == 0)
+                {
+                    <p class="muted">Create your first workspace.</p>
+                }
+                else
+                {
+                    <div class="selection-list">
+                        @foreach (WorkspaceDto workspace in _workspaces)
+                        {
+                            <button class="@GetWorkspaceButtonClass(workspace)"
+                                    @onclick="() => SelectWorkspaceAsync(workspace)">
+                                <strong>@workspace.Name</strong>
+                                <span>@workspace.MemberCount member(s)</span>
+                            </button>
+                        }
+                    </div>
+                }
+
+                <EditForm Model="_newWorkspace" OnValidSubmit="CreateWorkspaceAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <h3>New workspace</h3>
+
+                    <InputText class="input" placeholder="Workspace name" @bind-Value="_newWorkspace.Name" />
+                    <InputText class="input" placeholder="Description" @bind-Value="_newWorkspace.Description" />
+
+                    <button class="primary-button full-width" type="submit" disabled="@_isSaving">
+                        Create workspace
+                    </button>
+                </EditForm>
+            </aside>
+
+            <section class="main-board">
+                @if (_selectedWorkspace is null)
+                {
+                    <div class="empty-state">
+                        <h2>No workspace selected</h2>
+                        <p>Create or select a workspace to continue.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <div>
+                                <h2>@_selectedWorkspace.Name</h2>
+                                <p>@_selectedWorkspace.Description</p>
+                            </div>
+                        </div>
+
+                        <div class="project-section">
+                            <h3>Projects</h3>
+
+                            @if (_projects.Count == 0)
+                            {
+                                <p class="muted">Create the first project in this workspace.</p>
+                            }
+                            else
+                            {
+                                <div class="project-list">
+                                    @foreach (ProjectDto project in _projects)
+                                    {
+                                        <button class="@GetProjectButtonClass(project)"
+                                                @onclick="() => SelectProjectAsync(project)">
+                                            <strong>@project.Key</strong>
+                                            <span>@project.Name</span>
+                                        </button>
+                                    }
+                                </div>
+                            }
+
+                            <EditForm Model="_newProject" OnValidSubmit="CreateProjectAsync">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+
+                                <div class="inline-form">
+                                    <InputText class="input" placeholder="Project name" @bind-Value="_newProject.Name" />
+                                    <InputText class="input project-key-input" placeholder="Key" @bind-Value="_newProject.Key" />
+                                    <button class="primary-button" type="submit" disabled="@_isSaving">
+                                        Create project
+                                    </button>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+
+                    @if (_selectedProject is not null)
+                    {
+                        <div class="panel-card">
+                            <div class="panel-header">
+                                <div>
+                                    <h2>@_selectedProject.Name</h2>
+                                    <p>@_selectedProject.Description</p>
+                                </div>
+
+                                <button class="secondary-button" @onclick="LoadIssuesAsync" disabled="@_isSaving">
+                                    Refresh
+                                </button>
+                            </div>
+
+                            <EditForm Model="_newIssue" OnValidSubmit="CreateIssueAsync">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+
+                                <div class="create-issue-grid">
+                                    <InputText class="input" placeholder="Issue title" @bind-Value="_newIssue.Title" />
+                                    <InputSelect class="input" @bind-Value="_newIssue.Priority">
+                                        @foreach (IssuePriority priority in Enum.GetValues<IssuePriority>())
+                                        {
+                                            <option value="@priority">@priority</option>
+                                        }
+                                    </InputSelect>
+                                    <button class="primary-button" type="submit" disabled="@_isSaving">
+                                        Add issue
+                                    </button>
+                                </div>
+
+                                <InputTextArea class="input" placeholder="Description" @bind-Value="_newIssue.Description" />
+                            </EditForm>
+
+                            <div class="kanban-board">
+                                @foreach (IssueStatus status in Enum.GetValues<IssueStatus>())
+                                {
+                                    <section class="kanban-column">
+                                        <div class="kanban-column-header">
+                                            <h3>@status</h3>
+                                            <span>@_issues.Count(issue => issue.Status == status)</span>
+                                        </div>
+
+                                        @foreach (IssueDto issue in _issues.Where(issue => issue.Status == status).OrderBy(issue => issue.Number))
+                                        {
+                                            <article class="issue-card">
+                                                <div class="issue-card-header">
+                                                    <span class="issue-number">#@issue.Number</span>
+                                                    <span class="@GetPriorityClass(issue.Priority)">
+                                                        @issue.Priority
+                                                    </span>
+                                                </div>
+
+                                                <h4>@issue.Title</h4>
+
+                                                @if (!string.IsNullOrWhiteSpace(issue.Description))
+                                                {
+                                                    <p>@issue.Description</p>
+                                                }
+
+                                                <div class="status-actions">
+                                                    @foreach (IssueStatus nextStatus in Enum.GetValues<IssueStatus>())
+                                                    {
+                                                        if (nextStatus != issue.Status)
+                                                        {
+                                                            <button class="mini-button"
+                                                                    disabled="@_isSaving"
+                                                                    @onclick="() => ChangeIssueStatusAsync(issue, nextStatus)">
+                                                                @nextStatus
+                                                            </button>
+                                                        }
+                                                    }
+                                                </div>
+                                            </article>
+                                        }
+                                    </section>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </section>
+        </div>
+    }
+</section>
+
+@code {
+    private readonly CreateWorkspaceRequest _newWorkspace = new();
+    private readonly CreateProjectRequest _newProject = new();
+    private readonly CreateIssueRequest _newIssue = new();
+
+    private List<WorkspaceDto> _workspaces = [];
+    private List<ProjectDto> _projects = [];
+    private List<IssueDto> _issues = [];
+
+    private WorkspaceDto? _selectedWorkspace;
+    private ProjectDto? _selectedProject;
+
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWorkspacesAsync();
+    }
+
+    private async Task LoadWorkspacesAsync()
+    {
+        _isLoading = true;
+        _error = null;
+
+        ApiResult<List<WorkspaceDto>> result = await WorkspaceService.ListAsync();
+
+        _isLoading = false;
+
+        if (!result.IsSuccess || result.Value is null)
+        {
+            _error = result.Error ?? "Could not load workspaces.";
+            return;
+        }
+
+        _workspaces = result.Value;
+
+        if (_workspaces.Count > 0)
+        {
+            await SelectWorkspaceAsync(_workspaces[0]);
+        }
+    }
+
+    private async Task SelectWorkspaceAsync(WorkspaceDto workspace)
+    {
+        _selectedWorkspace = workspace;
+        _selectedProject = null;
+        _projects = [];
+        _issues = [];
+        _error = null;
+
+        ApiResult<List<ProjectDto>> result = await ProjectService.ListAsync(workspace.Id);
+
+        if (!result.IsSuccess || result.Value is null)
+        {
+            _error = result.Error ?? "Could not load projects.";
+            return;
+        }
+
+        _projects = result.Value;
+
+        if (_projects.Count > 0)
+        {
+            await SelectProjectAsync(_projects[0]);
+        }
+    }
+
+    private async Task SelectProjectAsync(ProjectDto project)
+    {
+        _selectedProject = project;
+        _issues = [];
+        _error = null;
+
+        await LoadIssuesAsync();
+    }
+
+    private async Task LoadIssuesAsync()
+    {
+        if (_selectedProject is null)
+        {
+            return;
+        }
+
+        SearchIssuesRequest request = new()
+        {
+            PageNumber = 1,
+            PageSize = 100,
+            SortBy = "number",
+            SortDescending = false
+        };
+
+        ApiResult<PagedList<IssueDto>> result = await IssueService.SearchAsync(
+            _selectedProject.Id,
+            request);
+
+        if (!result.IsSuccess || result.Value is null)
+        {
+            _error = result.Error ?? "Could not load issues.";
+            return;
+        }
+
+        _issues = result.Value.Items;
+    }
+
+    private async Task CreateWorkspaceAsync()
+    {
+        _isSaving = true;
+        _error = null;
+
+        ApiResult<WorkspaceDto> result = await WorkspaceService.CreateAsync(_newWorkspace);
+
+        _isSaving = false;
+
+        if (!result.IsSuccess || result.Value is null)
+        {
+            _error = result.Error ?? "Could not create workspace.";
+            return;
+        }
+
+        _newWorkspace.Name = string.Empty;
+        _newWorkspace.Description = null;
+
+        _workspaces.Add(result.Value);
+
+        await SelectWorkspaceAsync(result.Value);
+    }
+
+    private async Task CreateProjectAsync()
+    {
+        if (_selectedWorkspace is null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _error = null;
+
+        ApiResult<ProjectDto> result = await ProjectService.CreateAsync(
+            _selectedWorkspace.Id,
+            _newProject);
+
+        _isSaving = false;
+
+        if (!result.IsSuccess || result.Value is null)
+        {
+            _error = result.Error ?? "Could not create project.";
+            return;
+        }
+
+        _newProject.Name = string.Empty;
+        _newProject.Key = string.Empty;
+        _newProject.Description = null;
+
+        _projects.Add(result.Value);
+
+        await SelectProjectAsync(result.Value);
+    }
+
+    private async Task CreateIssueAsync()
+    {
+        if (_selectedProject is null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _error = null;
+
+        ApiResult<IssueDto> result = await IssueService.CreateAsync(
+            _selectedProject.Id,
+            _newIssue);
+
+        _isSaving = false;
+
+        if (!result.IsSuccess || result.Value is null)
+        {
+            _error = result.Error ?? "Could not create issue.";
+            return;
+        }
+
+        _newIssue.Title = string.Empty;
+        _newIssue.Description = null;
+        _newIssue.Priority = IssuePriority.Medium;
+        _newIssue.AssigneeUserId = null;
+        _newIssue.DueDateUtc = null;
+
+        await LoadIssuesAsync();
+    }
+
+    private async Task ChangeIssueStatusAsync(
+        IssueDto issue,
+        IssueStatus status)
+    {
+        _isSaving = true;
+        _error = null;
+
+        ChangeIssueStatusRequest request = new()
+        {
+            Status = status
+        };
+
+        ApiResult<IssueDto> result = await IssueService.ChangeStatusAsync(
+            issue.Id,
+            request);
+
+        _isSaving = false;
+
+        if (!result.IsSuccess || result.Value is null)
+        {
+            _error = result.Error ?? "Could not change issue status.";
+            return;
+        }
+
+        int index = _issues.FindIndex(existingIssue => existingIssue.Id == issue.Id);
+
+        if (index >= 0)
+        {
+            _issues[index] = result.Value;
+        }
+    }
+
+    private string GetWorkspaceButtonClass(WorkspaceDto workspace)
+    {
+        return _selectedWorkspace?.Id == workspace.Id
+            ? "selection-item active"
+            : "selection-item";
+    }
+
+    private string GetProjectButtonClass(ProjectDto project)
+    {
+        return _selectedProject?.Id == project.Id
+            ? "project-item active"
+            : "project-item";
+    }
+
+    private static string GetPriorityClass(IssuePriority priority)
+    {
+        return priority switch
+        {
+            IssuePriority.Low => "priority-badge low",
+            IssuePriority.Medium => "priority-badge medium",
+            IssuePriority.High => "priority-badge high",
+            IssuePriority.Critical => "priority-badge critical",
+            _ => "priority-badge"
+        };
+    }
+}

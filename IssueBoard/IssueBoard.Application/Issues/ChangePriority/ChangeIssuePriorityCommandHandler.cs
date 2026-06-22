@@ -30,7 +30,7 @@ public sealed class ChangeIssuePriorityCommandHandler
         ChangeIssuePriorityCommand request,
         CancellationToken cancellationToken)
     {
-        Issue? issue = await _issueRepository.GetByIdAsync(
+        Issue? issue = await _issueRepository.GetByIdForUpdateAsync(
             request.IssueId,
             cancellationToken);
 

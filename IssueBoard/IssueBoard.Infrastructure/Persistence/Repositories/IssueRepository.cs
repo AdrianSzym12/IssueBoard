@@ -25,6 +25,13 @@ public sealed class IssueRepository : IIssueRepository
             .SingleOrDefaultAsync(issue => issue.Id == id, cancellationToken);
     }
 
+    public Task<Issue?> GetByIdForUpdateAsync(
+    Guid id,
+    CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Issues
+            .SingleOrDefaultAsync(issue => issue.Id == id, cancellationToken);
+    }
     public Task<Issue?> GetByProjectAndNumberAsync(
         Guid projectId,
         int number,

@@ -30,7 +30,7 @@ public sealed class AssignIssueCommandHandler
         AssignIssueCommand request,
         CancellationToken cancellationToken)
     {
-        Issue? issue = await _issueRepository.GetByIdAsync(
+        Issue? issue = await _issueRepository.GetByIdForUpdateAsync(
             request.IssueId,
             cancellationToken);
 
